@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Switch Control</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #f8f9fa;
+      padding: 2rem;
+      max-width: 700px;
+      margin: auto;
+      color: #333;
+      /* background-color: yellow; */
+    }
+
+    h1 {
+      text-align: center;
+      color: #0d6efd;
+    }
+
+    form {
+      background: #fff;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 150px;
+    }
+
+    input[type="checkbox"] {
+      transform: scale(1.2);
+      margin-right: 0.4rem;
+    }
+
+    button {
+      padding: 0.6rem 1rem;
+      background: #0d6efd;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0b5ed7;
+    }
+
+    #switchList .switch {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .switch strong {
+      font-size: 1.1rem;
+      color: #0d6efd;
+    }
+
+    .switch-buttons {
+      margin-top: 0.5rem;
+    }
+
+    .switch-buttons button {
+      margin-right: 0.5rem;
+      background: #6c757d;
+    }
+
+    .switch-buttons button:first-child {
+      background: #198754;
+    }
+
+    .switch-buttons button:hover {
+      filter: brightness(1.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Switch Control Panel</h1>
+
+  <form id="switchForm">
+    <input type="text" id="name" placeholder="Switch Name" required />
+    <label>
+      <input type="checkbox" id="state" /> ON
+    </label>
+    <input type="number" id="timer" placeholder="Timer (s)" value="60" required />
+    <button type="submit">Create</button>
+  </form>
+
+  <div id="switchList"></div>
+
+  <script>
+    const API = "/api/switches";
+
+    const form = document.getElementById("switchForm");
+    const nameInput = document.getElementById("name");
+    const stateInput = document.getElementById("state");
+    const timerInput = document.getElementById("timer");
+    const switchList = document.getElementById("switchList");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: nameInput.value,
+          state: stateInput.checked,
+          timer: parseInt(timerInput.value),
+        }),
+      });
+      form.reset();
+      loadSwitches();
+    });
+
+    async function loadSwitches() {
+      const res = await fetch(API);
+      const data = await res.json();
+      switchList.innerHTML = "";
+      data.forEach((sw) => {
+        const div = document.createElement("div");
+        div.className = "switch";
+        div.innerHTML = `
+          <strong>${sw.name}</strong><br/>
+          State: <b>${sw.state ? "ON" : "OFF"}</b> | Timer: ${sw.timer}s | ${(sw.timer/3600).toFixed(2)}h
+          <div class="switch-buttons">
+            <button onclick="toggleSwitch(${sw.id}, ${!sw.state})">Toggle</button>
+            <button onclick="deleteSwitch(${sw.id})">Delete</button>
+            <button onclick="updateSwitch(${sw.id}, prompt('New Name:', '${sw.name}'), ${sw.state}, prompt('New Timer:', ${sw.timer}))">Update</button>
+          </div>
+        `;
+        switchList.appendChild(div);
+      });
+    }
+
+    async function toggleSwitch(id, newState) {
+
+      const res = await fetch(`${API}/${id}`);
+      const sw = await res.json();
+      await fetch(`${API}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...sw, state: newState }),
+      });
+      loadSwitches();
+    }
+
+        async function updateSwitch(id, name, state, timer) {
+        const res = await fetch(`${API}/${id}`);
+        const sw = await res.json();
+        await fetch(`${API}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...sw, name, state, timer }),
+        });
+        loadSwitches();
+    }
+
+    async function deleteSwitch(id) {
+      await fetch(`${API}/${id}`, { method: "DELETE" });
+      loadSwitches();
+    }
+
+    loadSwitches();
+  </script>
+</body>
+</html>
