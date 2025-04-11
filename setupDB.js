@@ -11,7 +11,7 @@ async function setup() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255),
       state BOOLEAN,
-      timer DATETIME
+      timer INT
     )
   `);
     
